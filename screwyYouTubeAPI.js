@@ -132,6 +132,9 @@ exports.getVideoById = async function(videoId) {
     else if (isPast) {status = "past"};// There has to be a better way to do this
     let startTimestamp = scrapeString(response, `"startTimestamp":`, ",");
     startTime = new Date(startTimestamp);
+    if (startTime == "Invalid Date") {
+        startTime = undefined;
+    };
     channelId = scrapeString(response, `"channelId":`, ",");
     data = {
         "id": videoId,
