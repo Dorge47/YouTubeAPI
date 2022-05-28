@@ -60,9 +60,13 @@ exports.getFutureVids = async function(channelId) {
         case 0:
             break;
         case 1:
-            let videoId = response.slice(response.indexOf(`"videoId":`)+11,response.indexOf(`"videoId":`)+22);
-            let status = "upcoming";
             let startTime = new Date(response.slice(response.indexOf(`"startTime":`)+13, response.indexOf(`"startTime":`)+23)*1000);
+            let currentTime = new Date();
+            if ((startTime - currentTime) > 360000000) {
+                break;
+            };
+            let status = "upcoming";
+            let videoId = response.slice(response.indexOf(`"videoId":`)+11,response.indexOf(`"videoId":`)+22);
             vidArr.push({
                 "id": videoId,
                 "status": status,
@@ -88,7 +92,7 @@ exports.getFutureVids = async function(channelId) {
             }
             break;
     }
-    return vidArr;
+    return JSON.stringify(vidArr);
 };
 exports.getVideoById = async function(videoId) {
     var status = "";
@@ -128,5 +132,5 @@ exports.getVideoById = async function(videoId) {
             "id": channelId
         }
     };// Add more channel data later
-    return data;
+    return JSON.stringify(data);
 };
