@@ -50,7 +50,10 @@ exports.getFutureVids = async function(channelId) {
         vidArr.push({
             "id": videoId,
             "status": status,
-            "available_at": startTime
+            "available_at": startTime,
+            "channel": {
+                "id": channelId
+            }
         });
     };
     path = "/channel/" + channelId + "/videos?view=2&live_view=502";
@@ -70,7 +73,10 @@ exports.getFutureVids = async function(channelId) {
             vidArr.push({
                 "id": videoId,
                 "status": status,
-                "available_at": startTime
+                "available_at": startTime,
+                "channel": {
+                    "id": channelId
+                }
             });
             break;
         default:
