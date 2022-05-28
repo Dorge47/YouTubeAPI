@@ -93,7 +93,10 @@ exports.getFutureVids = async function(channelId) {
                 vidArr.push({
                     "id": videoId,
                     "status": status,
-                    "available_at": startTime
+                    "available_at": startTime,
+                    "channel": {
+                        "id": channelId
+                    }
                 });
             }
             break;
