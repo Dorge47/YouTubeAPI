@@ -109,7 +109,7 @@ exports.getVideoById = async function(videoId) {
     var startTime = new Date();
     var data = {};
     response = await exports.getHTML("www.youtube.com", "/watch?v=" + videoId);
-    if (response.includes(`"text":"This video isn't available anymore"`)) {
+    if (response.includes(`"text":"This video isn't available anymore"`) || response.includes(`"This is a private video. Please sign in to verify that you may see it."`)) {
         status = "missing";
         data = {
             "id": videoId,
