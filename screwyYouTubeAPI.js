@@ -109,7 +109,7 @@ exports.getVideoById = async function(videoId) {
     var startTime = new Date();
     var data = {};
     response = await exports.getHTML("www.youtube.com", "/watch?v=" + videoId);
-    if (response.includes(`"text":"This video isn't available anymore"`) || response.includes(`"This is a private video. Please sign in to verify that you may see it."`)) {
+    if (response.includes(`"text":"This video isn't available anymore"`) || response.includes(`"This is a private video. Please sign in to verify that you may see it."`) || response.includes(`"This video has been removed by the uploader"`)) {
         status = "missing";
         data = {
             "id": videoId,
