@@ -101,7 +101,7 @@ exports.getFutureVids = async function(channelId) {
             }
             break;
     }
-    return JSON.stringify(vidArr);
+    return vidArr;
 };
 exports.getVideoById = async function(videoId) {
     var status = "";
@@ -144,5 +144,5 @@ exports.getVideoById = async function(videoId) {
             "id": channelId
         }
     };// Add more channel data later
-    return JSON.stringify(data);
+    return data;
 };
