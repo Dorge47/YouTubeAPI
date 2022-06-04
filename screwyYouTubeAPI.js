@@ -14,9 +14,11 @@ function scrapeString(string, starter, delimiter, offset = 0) {
     var tempStr = string.slice(strt + len);
     var fin = (tempStr.indexOf(delimiter) + offset);
     var finalStr = tempStr.slice(0, fin);
-    finalStr = finalStr.replace(/['"`{}]/g, '');
-    return finalStr;
-}
+    return exports.clean(finalStr);
+};
+exports.clean = function(string) {
+    return string.replace(/['"`{}]/g, '');
+};
 exports.getHTML = function(url, path) {
     var options = {
         host: url,
