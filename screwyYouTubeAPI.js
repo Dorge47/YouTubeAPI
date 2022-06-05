@@ -17,6 +17,9 @@ function scrapeString(string, starter, delimiter, offset = 0) {
     return exports.clean(finalStr);
 };
 exports.clean = function(string) {
+    if (typeof(string) != "string") {
+        return string;
+    };
     return string.replace(/['"`{}]/g, '');
 };
 exports.getHTML = function(url, path) {
