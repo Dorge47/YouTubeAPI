@@ -55,7 +55,7 @@ exports.getFutureVids = async function(channelId) {
         vidArr.push({
             "id": videoId,
             "status": status,
-            "available_at": startTime,
+            "available_at": exports.clean(JSON.stringify(startTime)),
             "channel": {
                 "id": channelId
             }
@@ -78,7 +78,7 @@ exports.getFutureVids = async function(channelId) {
             vidArr.push({
                 "id": videoId,
                 "status": status,
-                "available_at": startTime,
+                "available_at": exports.clean(JSON.stringify(startTime)),
                 "channel": {
                     "id": channelId
                 }
@@ -98,7 +98,7 @@ exports.getFutureVids = async function(channelId) {
                 vidArr.push({
                     "id": videoId,
                     "status": status,
-                    "available_at": startTime,
+                    "available_at": exports.clean(JSON.stringify(startTime)),
                     "channel": {
                         "id": channelId
                     }
@@ -139,6 +139,9 @@ exports.getVideoById = async function(videoId) {
     startTime = new Date(startTimestamp);
     if (startTime == "Invalid Date") {
         startTime = undefined;
+    }
+    else {
+        startTime = exports.clean(JSON.stringify(startTime));
     };
     channelId = scrapeString(response, `"channelId":`, ",");
     data = {
