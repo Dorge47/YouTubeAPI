@@ -138,7 +138,7 @@ exports.getVideoById = async function(videoId) {
     let startTimestamp = scrapeString(response, `"startTimestamp":`, ",");
     startTime = new Date(startTimestamp);
     if (startTime == "Invalid Date") {
-        startTime = undefined;
+        startTime = new Date();// Assume we're waiting for host
     }
     else {
         startTime = exports.clean(JSON.stringify(startTime));
