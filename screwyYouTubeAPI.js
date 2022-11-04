@@ -1,7 +1,4 @@
 const https = require('https');
-function getNextVideoId(string, refIndex) {
-    var strt = string.indexOf(`"videoId":`, refIndex + 1);
-}
 function getNthPosition(string, subString, n) {// n = 1,2,3... (NOT 0)
     var pos = string.split(subString, n).join(subString).length;
     switch (pos) {
@@ -50,7 +47,9 @@ exports.getFutureVids = async function(channelId) {
     var path = "/channel/" + channelId + "/streams";
     var response = await exports.getHTML(url, path);
     if (response.includes('"text":"LIVE"')) {
-        let videoId = response.slice(response.indexOf(`"videoId":`)+11,response.indexOf(`"videoId":`)+22);
+        let liveIndicatorIndex = response.indexOf(`"text":"LIVE"`);
+        let idIndex = response.indexOf(`"videoId":`, liveIndicatorIndex);
+        let videoId = response.slice(idIndex+11,idIndex+22);
         let status = "live";
         let startTime = new Date();
         let videoResponse = await exports.getHTML(url, "/watch?v=" + videoId)
@@ -78,7 +77,7 @@ exports.getFutureVids = async function(channelId) {
                 break;
             };
             let status = "upcoming";
-            let idIndex = response.indexOf(`"videoId":`,timestampIndex);
+            let idIndex = response.indexOf(`"videoId":`, timestampIndex);
             let videoId = response.slice(idIndex+11,idIndex+22);
             vidArr.push({
                 "id": videoId,
