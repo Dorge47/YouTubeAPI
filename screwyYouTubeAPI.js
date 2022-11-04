@@ -72,6 +72,7 @@ exports.getFutureVids = async function(channelId) {
         case 1:
             let timestampIndex = response.indexOf(`"startTime":`);
             let startTime = new Date(response.slice(timestampIndex+13, timestampIndex+23)*1000);
+            // Technically this will start cutting off the last digit of the datestamp in November of 2286, maybe update it before then
             let currentTime = new Date();
             if ((startTime - currentTime) > 360000000) {
                 break;
@@ -95,8 +96,8 @@ exports.getFutureVids = async function(channelId) {
                 let currentTime = new Date();
                 if ((startTime - currentTime) > 360000000) {
                     continue;
-                }
-                let nthIdIndex = response.indexOf("videoId:", nthTimestampIndex);
+                };
+                let nthIdIndex = response.indexOf(`"videoId":`, nthTimestampIndex);
                 let videoId = response.slice(nthIdIndex+11, nthIdIndex+22);
                 let status = "upcoming";
                 vidArr.push({
@@ -107,9 +108,9 @@ exports.getFutureVids = async function(channelId) {
                         "id": channelId
                     }
                 });
-            }
+            };
             break;
-    }
+    };
     return vidArr;
 };
 exports.getVideoById = async function(videoId) {
