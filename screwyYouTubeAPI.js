@@ -1,4 +1,7 @@
 const https = require('https');
+function getNextVideoId(string, refIndex) {
+    var strt = string.indexOf(`"videoId":`, refIndex + 1);
+}
 function getNthPosition(string, subString, n) {// n = 1,2,3... (NOT 0)
     var pos = string.split(subString, n).join(subString).length;
     switch (pos) {
@@ -44,7 +47,7 @@ exports.getFutureVids = async function(channelId) {
     // Currently will not return more than one live video if multiple are live simultaneously
     var vidArr = [];
     var url = "www.youtube.com";
-    var path = "/channel/" + channelId + "/videos?view=2&live_view=501";
+    var path = "/channel/" + channelId + "/streams";
     var response = await exports.getHTML(url, path);
     if (response.includes('"text":"LIVE"')) {
         let videoId = response.slice(response.indexOf(`"videoId":`)+11,response.indexOf(`"videoId":`)+22);
@@ -61,20 +64,22 @@ exports.getFutureVids = async function(channelId) {
             }
         });
     };
-    path = "/channel/" + channelId + "/videos?view=2&live_view=502";
+    path = "/channel/" + channelId + "/streams";
     var response = await exports.getHTML(url, path);
     var numScheduled = (response.match(/"startTime":/g) || []).length;
     switch (numScheduled) {
         case 0:
             break;
         case 1:
-            let startTime = new Date(response.slice(response.indexOf(`"startTime":`)+13, response.indexOf(`"startTime":`)+23)*1000);
+            let timestampIndex = response.indexOf(`"startTime":`);
+            let startTime = new Date(response.slice(timestampIndex+13, timestampIndex+23)*1000);
             let currentTime = new Date();
             if ((startTime - currentTime) > 360000000) {
                 break;
             };
             let status = "upcoming";
-            let videoId = response.slice(response.indexOf(`"videoId":`)+11,response.indexOf(`"videoId":`)+22);
+            let idIndex = response.indexOf(`"videoId":`,timestampIndex);
+            let videoId = response.slice(idIndex+11,idIndex+22);
             vidArr.push({
                 "id": videoId,
                 "status": status,
@@ -92,7 +97,7 @@ exports.getFutureVids = async function(channelId) {
                 if ((startTime - currentTime) > 360000000) {
                     continue;
                 }
-                let nthIdIndex = getNthPosition(response, `"videoId":`, (4 * (i + 1)));
+                let nthIdIndex = response.indexOf("videoId:", nthTimestampIndex);
                 let videoId = response.slice(nthIdIndex+11, nthIdIndex+22);
                 let status = "upcoming";
                 vidArr.push({
