@@ -31,6 +31,10 @@ exports.getHTML = function(url, path) {
     return new Promise(function(resolve) {// Shut up I'll add rejection handling later
         https.get(options, (resp) => {
             var data = "";
+            resp.on("error", (er) => {
+                console.log(JSON.stringify(er));
+                process.exit();
+            });
             resp.on("data", (chunk) => (data += chunk));
             resp.on("end", () => {
                 resolve(data);
@@ -74,7 +78,7 @@ exports.getFutureVids = async function(channelId) {
             let startTime = new Date(response.slice(timestampIndex+13, timestampIndex+23)*1000);
             // Technically this will start cutting off the last digit of the datestamp in November of 2286, maybe update it before then
             let currentTime = new Date();
-            if ((startTime - currentTime) > 360000000) {
+            if ((startTime - currentTime) > 360000000) { // Ignore streams over 100 hours in the future
                 break;
             };
             let status = "upcoming";
