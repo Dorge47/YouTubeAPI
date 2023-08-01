@@ -42,13 +42,13 @@ exports.getHTML = function(url, path) {
         });
     })
 };
-exports.getFutureVids = async function(channelId) {
+exports.getFutureVids = async function(streamer) {
     // Return a list of all live and upcoming videos up to 100 hours in the future
     // Each element should include a video id, a start time, and a status
     // Currently will not return more than one live video if multiple are live simultaneously
     var vidArr = [];
     var url = "www.youtube.com";
-    var path = "/channel/" + channelId + "/streams";
+    var path = "/channel/" + streamer.channelId + "/streams";
     var response = await exports.getHTML(url, path);
     if (response.includes('"text":"LIVE"')) {
         let liveIndicatorIndex = response.indexOf(`"text":"LIVE"`);
@@ -61,13 +61,10 @@ exports.getFutureVids = async function(channelId) {
         vidArr.push({
             "id": videoId,
             "status": status,
-            "available_at": exports.clean(JSON.stringify(startTime)),
-            "channel": {
-                "id": channelId
-            }
+            "startTime": exports.clean(JSON.stringify(startTime))
         });
     };
-    path = "/channel/" + channelId + "/streams";
+    path = "/channel/" + streamer.channelId + "/streams";
     var response = await exports.getHTML(url, path);
     var numScheduled = (response.match(/"startTime":/g) || []).length;
     switch (numScheduled) {
@@ -87,10 +84,7 @@ exports.getFutureVids = async function(channelId) {
             vidArr.push({
                 "id": videoId,
                 "status": status,
-                "available_at": exports.clean(JSON.stringify(startTime)),
-                "channel": {
-                    "id": channelId
-                }
+                "startTime": exports.clean(JSON.stringify(startTime))
             });
             break;
         default:
@@ -107,59 +101,39 @@ exports.getFutureVids = async function(channelId) {
                 vidArr.push({
                     "id": videoId,
                     "status": status,
-                    "available_at": exports.clean(JSON.stringify(startTime)),
-                    "channel": {
-                        "id": channelId
-                    }
+                    "startTime": exports.clean(JSON.stringify(startTime))
                 });
             };
             break;
     };
     return vidArr;
 };
-exports.getVideoById = async function(videoId) {
+exports.refreshStreamData = async function(stream) {
     var status = "";
-    var channelId = "";
     var startTime = new Date();
     var data = {};
-    response = await exports.getHTML("www.youtube.com", "/watch?v=" + videoId);
+    response = await exports.getHTML("www.youtube.com", "/watch?v=" + stream.id);
     if (response.includes(`"text":"This video isn't available anymore"`) || response.includes(`"This is a private video. Please sign in to verify that you may see it."`) || response.includes(`"This video has been removed by the uploader"`)) {
-        status = "missing";
-        data = {
-            "id": videoId,
-            "status": status,
-            "available_at": undefined,
-            "channel": {
-                "id": undefined
-            }
-        };
-        return data;
+        stream.status = "missing";
+        stream.startTime = undefined;
+        return stream;
     };
     var isLive = response.includes(`"isLiveNow":true`);
     var isUpcoming = response.includes(`"isUpcoming":true`);
     var isPast = response.includes(`"endTimestamp":`);
     if (!isLive && !isUpcoming && !isPast) {
-        console.error("Unknown stream status with id " + videoId);
+        console.error("Unknown stream status with id " + stream.id);
     }
-    if (isLive) {status = "live"}
-    else if (isUpcoming) {status = "upcoming"}
-    else if (isPast) {status = "past"};// There has to be a better way to do this
+    if (isLive) {stream.status = "live"}
+    else if (isUpcoming) {stream.status = "upcoming"}
+    else if (isPast) {stream.status = "past"};// There has to be a better way to do this
     let startTimestamp = scrapeString(response, `"startTimestamp":`, ",");
     startTime = new Date(startTimestamp);
     if (startTime == "Invalid Date") {
-        startTime = new Date();// Assume we're waiting for host
+        stream.startTime = exports.clean(JSON.stringify(new Date()));// Assume we're waiting for host
     }
     else {
-        startTime = exports.clean(JSON.stringify(startTime));
+        stream.startTime = exports.clean(JSON.stringify(startTime));
     };
-    channelId = scrapeString(response, `"channelId":`, ",");
-    data = {
-        "id": videoId,
-        "status": status,
-        "available_at": startTime,
-        "channel": {
-            "id": channelId
-        }
-    };// Add more channel data later
-    return data;
+    return stream;
 };
