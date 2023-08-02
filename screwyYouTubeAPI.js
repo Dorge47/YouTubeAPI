@@ -123,13 +123,20 @@ exports.refreshStreamData = async function(stream) {
     var isPast = response.includes(`"endTimestamp":`);
     if (!isLive && !isUpcoming && !isPast) {
         console.error("Unknown stream status with id " + stream.id);
-    }
+    };
     if (isLive) {stream.status = "live"}
-    else if (isUpcoming) {stream.status = "upcoming"}
+    else if (isUpcoming) {
+        stream.status = "upcoming"
+        let scheduledStartTime = new Date(scrapeString(response, `"scheduledStartTime":`, ",")*1000);
+        if (scheduledStartTime - new Date() < -5400000) {
+            stream.status = "late";
+        };
+    }
     else if (isPast) {stream.status = "past"};// There has to be a better way to do this
     let startTimestamp = scrapeString(response, `"startTimestamp":`, ",");
     startTime = new Date(startTimestamp);
     if (startTime == "Invalid Date") {
+        console.log("Bad timestamp");
         stream.startTime = exports.clean(JSON.stringify(new Date()));// Assume we're waiting for host
     }
     else {
