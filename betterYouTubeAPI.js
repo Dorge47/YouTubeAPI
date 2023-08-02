@@ -21,22 +21,35 @@ function sendRequest(func, params) {
         });
     });
 };
-function Stream(id, title, tags, startTime, status) {
+function Stream(id, title, tags, startTime, status, blacklist = false) {
     this.id = id;
     this.title = title;
     this.tags = tags;
     this.startTime = startTime;
     this.status = status;
+    this.blacklist = blacklist;// Blacklist bad streams so we don't waste API quota refreshing them
     this.getTimeRemaining = function() {
         
     };
 };
-exports.getUploadListById = function(channelId) {
-    var uploadPlaylistId = "UU" + channelId.slice(2);
-    return uploadPlaylistId;
-};
 exports.getFutureVids = async function(channelId, apiKey) {
-    
+    vidArr = [];
+    let playlistId = "UU" + channelId.slice(2);
+    let requestParams = {
+        "part": "status,snippet,id,contentDetails",
+        "playlistId": playlistId,
+        "key": ytAPIKey
+    };
+    let response = await sendRequest("playlistItems", requestParams);
+    let responseObj = JSON.parse(response);
+    for (let i = 0; i < responseObj.items.length; i++) {
+        if (responseObj.items[i].liveStreamingDetails === undefined) {
+            continue;
+        };
+        let videoData = await getVid(responseObj.items[i].id);
+        vidArr.push(videoData);
+    };
+    return vidArr;
 };
 exports.getVid = async function(videoId) {
     let status = "";
@@ -47,15 +60,16 @@ exports.getVid = async function(videoId) {
         "part": "contentDetails,id,liveStreamingDetails,localizations,player,recordingDetails,snippet,statistics,status,topicDetails",
         "id": videoId,
         "key": ytAPIKey
-    }
+    };
     let response = await sendRequest("videos", requestParams);
     let responseObj = JSON.parse(response);
     if (responseObj.pageInfo.totalResults == 0) {
-        status = "missing";
+        // Video is deleted or private
+        return {"id": videoId, status: "missing", blacklist: true};
     }
     else if (responseObj.items[0].liveStreamingDetails === undefined) {
         // Video is not a stream
-        return null;
+        return {"id": videoId, "blacklist": true};
     };
     if (responseObj.items[0].snippet.liveBroadcastContent == "live") {
         status = "live";
