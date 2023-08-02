@@ -1,6 +1,7 @@
 const https = require("https");
 const fs = require('fs');
-const ytAPIKey = JSON.parse(fs.readFileSync("apikey"));
+//Uncomment for testing
+/*const ytAPIKey = JSON.parse(fs.readFileSync("apikey"));*/
 function sendRequest(func, params) {
     let urlQuery = new URLSearchParams(params).toString();
     const options = {
@@ -32,26 +33,26 @@ function Stream(id, title, tags, startTime, status, blacklist = false) {
         
     };
 };
-exports.getFutureVids = async function(channelId, apiKey) {
-    vidArr = [];
+exports.getFutureStreams = async function(channelId, apiKey) {
+    let strmArr = [];
     let playlistId = "UU" + channelId.slice(2);
     let requestParams = {
         "part": "status,snippet,id,contentDetails",
         "playlistId": playlistId,
-        "key": ytAPIKey
+        "key": apikey
     };
     let response = await sendRequest("playlistItems", requestParams);
     let responseObj = JSON.parse(response);
     for (let i = 0; i < responseObj.items.length; i++) {
-        if (responseObj.items[i].liveStreamingDetails === undefined) {
-            continue;
+        //TODO: Check if data returned by playlistItems can be used to determine whether a video is a stream before calling getStream() so we don't waste API quota
+        let streamData = await getStream(responseObj.items[i].id);
+        if (!streamData.blacklist) {
+            strmArr.push(streamData);
         };
-        let videoData = await getVid(responseObj.items[i].id);
-        vidArr.push(videoData);
     };
-    return vidArr;
+    return strmArr;
 };
-exports.getVid = async function(videoId) {
+exports.getStream = async function(videoId, apikey) {
     let status = "";
     let title = "";
     let tags = [];
@@ -59,7 +60,7 @@ exports.getVid = async function(videoId) {
     let requestParams = {
         "part": "contentDetails,id,liveStreamingDetails,localizations,player,recordingDetails,snippet,statistics,status,topicDetails",
         "id": videoId,
-        "key": ytAPIKey
+        "key": apikey
     };
     let response = await sendRequest("videos", requestParams);
     let responseObj = JSON.parse(response);
@@ -84,6 +85,50 @@ exports.getVid = async function(videoId) {
     tags = responseObj.items[0].snippet.tags;
     startTime = responseObj.items[0].liveStreamingDetails.actualStartTime || responseObj.items[0].liveStreamingDetails.scheduledStartTime;
     return new Stream(videoId, title, tags, startTime, status);
+};
+exports.refreshStream = async function(stream, apikey) {
+    if (stream.blacklist == true) {
+        console.error("refreshStream() was passed a blacklisted stream!\n\n" + JSON.stringify(stream) + "\n");
+        return stream;
+    };
+    let requestParams = {
+        "part": "contentDetails,id,liveStreamingDetails,localizations,player,recordingDetails,snippet,statistics,status,topicDetails",
+        "id": videoId,
+        "key": apikey
+    };
+    let response = await sendRequest("videos", requestParams);
+    let responseObj = JSON.parse(response);
+    if (responseObj.pageInfo.totalResults == 0) {
+        // Video is deleted or private
+        console.log(stream.streamer.shortName + "'s stream with ID " + stream.id + " is missing");
+        stream.blacklist = true;
+        return stream;
+    }
+    else if (responseObj.items[0].liveStreamingDetails === undefined) {
+        // Video is not a stream
+        console.log("refreshStream() was passed a non-stream video with ID " + stream.id);
+        stream.blacklist = true;
+        return stream;
+    };
+    if (responseObj.items[0].snippet.liveBroadcastContent == "live") {
+        stream.status = "live";
+    }
+    else if (responseObj.items[0].snippet.liveBroadcastContent == "upcoming") {
+        stream.status = "upcoming";
+    }
+    else if (responseObj.items[0].liveStreamingDetails.actualEndTime !== undefined) {
+        stream.status = "past";
+    };
+    if (stream.title != responseObj.items[0].snippet.title) {
+        stream.title = responseObj.items[0].snippet.title;
+        console.log("Title for " + stream.streamer.shortName + "'s stream with ID " + stream.id + " was updated");
+    };
+    if (stream.tags != responseObj.items[0].snippet.tags) {
+        stream.tags = responseObj.items[0].snippet.tags;
+        console.log("Tags for " + stream.streamer.shortName + "'s stream with ID " + stream.id + " were updated");
+    };
+    stream.startTime = responseObj.items[0].liveStreamingDetails.actualStartTime || responseObj.items[0].liveStreamingDetails.scheduledStartTime;
+    return stream;
 };
 /*async function testYT() {
     output = await exports.getVid("");
