@@ -8,6 +8,18 @@ function getNthPosition(string, subString, n) {// n = 1,2,3... (NOT 0)
             return pos;
     };
 };
+function Stream(id, title, tags, startTime, status, membersOnly, streamer) {
+    this.id = id;
+    this.title = title;
+    this.tags = tags;
+    this.startTime = startTime;
+    this.status = status;
+    this.membersOnly = membersOnly;
+    this.streamer = streamer;
+    this.getTimeRemaining = function() {
+        
+    };
+};
 function scrapeString(string, starter, delimiter, offset = 0) {
     var strt = string.indexOf(starter);
     var len = starter.length;
@@ -40,7 +52,7 @@ exports.getHTML = function(url, path) {
                 resolve(data);
             });
         });
-    })
+    });
 };
 exports.getFutureVids = async function(streamer) {
     // Return a list of all live and upcoming videos up to 100 hours in the future
@@ -53,16 +65,12 @@ exports.getFutureVids = async function(streamer) {
     if (response.includes('"text":"LIVE"')) {
         let liveIndicatorIndex = response.indexOf(`"text":"LIVE"`);
         let idIndex = response.indexOf(`"videoId":`, liveIndicatorIndex);
-        let videoId = response.slice(idIndex+11,idIndex+22);
+        let videoId = response.slice(idIndex+11, idIndex+22);
         let status = "live";
         let startTime = new Date();
-        let videoResponse = await exports.getHTML(url, "/watch?v=" + videoId)
-        startTime = new Date(videoResponse.slice(videoResponse.indexOf(`"startTimestamp":`)+18,videoResponse.indexOf(`"startTimestamp":`)+43));
-        vidArr.push({
-            "id": videoId,
-            "status": status,
-            "startTime": exports.clean(JSON.stringify(startTime))
-        });
+        let videoResponse = await exports.getHTML(url, "/watch?v=" + videoId);
+        startTime = exports.clean(JSON.stringify(new Date(videoResponse.slice(videoResponse.indexOf(`"startTimestamp":`)+18,videoResponse.indexOf(`"startTimestamp":`)+43))));
+        vidArr.push(new Stream(videoId, title, tags, startTime, status, membersOnly, streamer));
     };
     path = "/channel/" + streamer.channelId + "/streams";
     var response = await exports.getHTML(url, path);
@@ -142,5 +150,9 @@ exports.refreshStreamData = async function(stream) {
     else {
         stream.startTime = exports.clean(JSON.stringify(startTime));
     };
+    // Make sure nothing has changed (title, tags, etc)
+    let titleIndex = response.indexOf(`"title":`, idIndex);
+    let titleEnd = response.indexOf(`","lengthSeconds":`);
+    stream.title = response.slice(titleIndex+9, titleEnd);
     return stream;
 };
