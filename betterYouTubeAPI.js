@@ -1,7 +1,7 @@
 const https = require("https");
 const fs = require('fs');
 //Uncomment for testing
-/*const ytAPIKey = JSON.parse(fs.readFileSync("apikey"));*/
+//const ytAPIKey = JSON.parse(fs.readFileSync("apikey"));
 function sendRequest(func, params) {
     let urlQuery = new URLSearchParams(params).toString();
     const options = {
@@ -10,7 +10,7 @@ function sendRequest(func, params) {
         method: "GET",
         headers: {
             "Accept": "application/json",
-        },
+        }
     };
     return new Promise(function(resolve) {
         https.get(options, (resp) => {
@@ -22,37 +22,38 @@ function sendRequest(func, params) {
         });
     });
 };
-function Stream(id, title, tags, startTime, status, blacklist = false) {
+function Stream(id, title, tags, startTime, status, streamer, blacklist = false) {
     this.id = id;
     this.title = title;
     this.tags = tags;
     this.startTime = startTime;
     this.status = status;
+    this.streamer = streamer;
     this.blacklist = blacklist;// Blacklist bad streams so we don't waste API quota refreshing them
     this.getTimeRemaining = function() {
         
     };
 };
-exports.getFutureStreams = async function(channelId, apiKey) {
+exports.getFutureStreams = async function(streamer, apiKey) {
     let strmArr = [];
-    let playlistId = "UU" + channelId.slice(2);
+    let playlistId = "UU" + streamer.channelId.slice(2);
     let requestParams = {
         "part": "status,snippet,id,contentDetails",
         "playlistId": playlistId,
-        "key": apikey
+        "key": apiKey
     };
     let response = await sendRequest("playlistItems", requestParams);
     let responseObj = JSON.parse(response);
     for (let i = 0; i < responseObj.items.length; i++) {
         //TODO: Check if data returned by playlistItems can be used to determine whether a video is a stream before calling getStream() so we don't waste API quota
-        let streamData = await getStream(responseObj.items[i].id);
+        let streamData = await exports.getStream(responseObj.items[i].contentDetails.videoId, streamer, apiKey);
         if (!streamData.blacklist) {
             strmArr.push(streamData);
         };
     };
     return strmArr;
 };
-exports.getStream = async function(videoId, apikey) {
+exports.getStream = async function(videoId, streamer, apiKey) {
     let status = "";
     let title = "";
     let tags = [];
@@ -60,7 +61,7 @@ exports.getStream = async function(videoId, apikey) {
     let requestParams = {
         "part": "contentDetails,id,liveStreamingDetails,localizations,player,recordingDetails,snippet,statistics,status,topicDetails",
         "id": videoId,
-        "key": apikey
+        "key": apiKey
     };
     let response = await sendRequest("videos", requestParams);
     let responseObj = JSON.parse(response);
@@ -82,11 +83,12 @@ exports.getStream = async function(videoId, apikey) {
         status = "past";
     };
     title = responseObj.items[0].snippet.title;
-    tags = responseObj.items[0].snippet.tags;
+    tags = responseObj.items[0].snippet.tags || [];
     startTime = responseObj.items[0].liveStreamingDetails.actualStartTime || responseObj.items[0].liveStreamingDetails.scheduledStartTime;
-    return new Stream(videoId, title, tags, startTime, status);
+    return new Stream(videoId, title, tags, startTime, status, streamer);
 };
 exports.refreshStream = async function(stream, apikey) {
+    let startTime = "";
     if (stream.blacklist == true) {
         console.error("refreshStream() was passed a blacklisted stream!\n\n" + JSON.stringify(stream) + "\n");
         return stream;
@@ -127,7 +129,11 @@ exports.refreshStream = async function(stream, apikey) {
         stream.tags = responseObj.items[0].snippet.tags;
         console.log("Tags for " + stream.streamer.shortName + "'s stream with ID " + stream.id + " were updated");
     };
-    stream.startTime = responseObj.items[0].liveStreamingDetails.actualStartTime || responseObj.items[0].liveStreamingDetails.scheduledStartTime;
+    startTime = responseObj.items[0].liveStreamingDetails.actualStartTime || responseObj.items[0].liveStreamingDetails.scheduledStartTime;
+    if (stream.startTime != startTime) {
+        stream.startTime = startTime;
+        console.log("Start time for " + stream.streamer.shortName + "'s stream with ID " + stream.id + " was updated");
+    };
     return stream;
 };
 /*async function testYT() {
