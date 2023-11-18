@@ -81,6 +81,9 @@ exports.getFutureVids = async function(channelId) {
             if ((startTime - currentTime) > 360000000) { // Ignore streams over 100 hours in the future
                 break;
             };
+            if ((currentTime - startTime) > 3600000) { // Ignore streams scheduled for over an hour ago
+                break;
+            }
             let status = "upcoming";
             let idIndex = response.indexOf(`"videoId":`, timestampIndex);
             let videoId = response.slice(idIndex+11,idIndex+22);
