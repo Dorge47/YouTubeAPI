@@ -49,7 +49,9 @@ exports.getFutureVids = async function(channelId) {
     var vidArr = [];
     var url = "www.youtube.com";
     var path = "/channel/" + channelId + "/streams";
+    let quota = 0;
     var response = await exports.getHTML(url, path);
+    quota++;
     if (response.includes('"text":"LIVE"')) {
         let liveIndicatorIndex = response.indexOf(`"text":"LIVE"`);
         let idIndex = response.indexOf(`"videoId":`, liveIndicatorIndex);
@@ -57,6 +59,7 @@ exports.getFutureVids = async function(channelId) {
         let status = "live";
         let startTime = new Date();
         let videoResponse = await exports.getHTML(url, "/watch?v=" + videoId)
+        quota++;
         startTime = new Date(videoResponse.slice(videoResponse.indexOf(`"startTimestamp":`)+18,videoResponse.indexOf(`"startTimestamp":`)+43));
         vidArr.push({
             "id": videoId,
@@ -70,6 +73,7 @@ exports.getFutureVids = async function(channelId) {
     path = "/channel/" + channelId + "/streams";
     var response = await exports.getHTML(url, path);
     var numScheduled = (response.match(/"startTime":/g) || []).length;
+    quota += numScheduled;
     switch (numScheduled) {
         case 0:
             break;
@@ -118,7 +122,7 @@ exports.getFutureVids = async function(channelId) {
             };
             break;
     };
-    return vidArr;
+    return [vidArr, quota];
 };
 exports.getVideoById = async function(videoId) {
     var status = "";
