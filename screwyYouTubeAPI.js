@@ -45,7 +45,8 @@ exports.getHTML = function(url, path) {
 exports.getFutureVids = async function(channelId) {
     // Return a list of all live and upcoming videos up to 100 hours in the future
     // Each element should include a video id, a start time, and a status
-    // Currently will not return more than one live video if multiple are live simultaneously
+    // Will not return more than one live video if multiple are live simultaneously
+    // Will not return stream if streamer is over an hour late
     var vidArr = [];
     var url = "www.youtube.com";
     var path = "/channel/" + channelId + "/streams";
@@ -61,6 +62,7 @@ exports.getFutureVids = async function(channelId) {
         let videoResponse = await exports.getHTML(url, "/watch?v=" + videoId)
         quota++;
         startTime = new Date(videoResponse.slice(videoResponse.indexOf(`"startTimestamp":`)+18,videoResponse.indexOf(`"startTimestamp":`)+43));
+        // Is this necessary? Check if it's possible to get the start time of a currently live stream from the streams page
         vidArr.push({
             "id": videoId,
             "status": status,
@@ -70,10 +72,7 @@ exports.getFutureVids = async function(channelId) {
             }
         });
     };
-    path = "/channel/" + channelId + "/streams";
-    var response = await exports.getHTML(url, path);
     var numScheduled = (response.match(/"startTime":/g) || []).length;
-    quota += numScheduled;
     switch (numScheduled) {
         case 0:
             break;
@@ -87,7 +86,7 @@ exports.getFutureVids = async function(channelId) {
             };
             if ((currentTime - startTime) > 3600000) { // Ignore streams scheduled for over an hour ago
                 break;
-            }
+            };
             let status = "upcoming";
             let idIndex = response.indexOf(`"videoId":`, timestampIndex);
             let videoId = response.slice(idIndex+11,idIndex+22);
@@ -106,6 +105,9 @@ exports.getFutureVids = async function(channelId) {
                 let startTime = new Date(response.slice(nthTimestampIndex+13, nthTimestampIndex+23)*1000);
                 let currentTime = new Date();
                 if ((startTime - currentTime) > 360000000) {
+                    continue;
+                };
+                if ((currentTime - startTime) > 3600000) {
                     continue;
                 };
                 let nthIdIndex = response.indexOf(`"videoId":`, nthTimestampIndex);
@@ -151,14 +153,8 @@ exports.getVideoById = async function(videoId) {
     if (isLive) {status = "live"}
     else if (isUpcoming) {status = "upcoming"}
     else if (isPast) {status = "past"};// There has to be a better way to do this
-    let startTimestamp = scrapeString(response, `"startTimestamp":`, ",");
-    startTime = new Date(startTimestamp);
-    if (startTime == "Invalid Date") {
-        startTime = new Date();// Assume we're waiting for host
-    }
-    else {
-        startTime = exports.clean(JSON.stringify(startTime));
-    };
+    var dateStarter = (isUpcoming) ? `"scheduledStartTime"` : `"startTimestamp":`;
+    startTime = exports.clean(JSON.stringify(new Date(scrapeString(response, dateStarter, ","))));
     channelId = scrapeString(response, `"channelId":`, ",");
     data = {
         "id": videoId,
