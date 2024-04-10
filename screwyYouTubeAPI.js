@@ -153,8 +153,12 @@ exports.getVideoById = async function(videoId) {
     if (isLive) {status = "live"}
     else if (isUpcoming) {status = "upcoming"}
     else if (isPast) {status = "past"};// There has to be a better way to do this
-    var dateStarter = (isUpcoming) ? `"scheduledStartTime":` : `"startTimestamp":`;
-    startTime = exports.clean(JSON.stringify(new Date(scrapeString(response, dateStarter, ","))));
+    if (isUpcoming) {
+        startTime = exports.clean(JSON.stringify(new Date((scrapeString(response, `"scheduledStartTime":`, ",") * 1000))));
+    }
+    else {
+        startTime = exports.clean(JSON.stringify(new Date(scrapeString(response, `"startTimestamp":`, ","))));
+    };
     channelId = scrapeString(response, `"channelId":`, ",");
     data = {
         "id": videoId,
