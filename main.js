@@ -13,6 +13,14 @@ async function showVideoData(videoId) {
     var resp = await api.getVideoById(videoId);
     console.log(JSON.stringify(resp));
 }
+async function countInstances() {
+    domain = "";
+    path = "";
+    var HTML = await api.getHTML(domain, path);
+    var count = (HTML.match("scheduledStartTime"/g) || []).length;
+    console.log(count);
+}
+//countInstances();
 //showVideoData("");
 // OUTDATED ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 // the HTML from `/videos?view=2&live_view=501` will contain one occurence of `"text":"LIVE"` per current livestream, or 0 if the channel is not live
