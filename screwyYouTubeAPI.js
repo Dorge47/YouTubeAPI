@@ -154,7 +154,12 @@ exports.getVideoById = async function(videoId) {
     else if (isUpcoming) {status = "upcoming"}
     else if (isPast) {status = "past"};// There has to be a better way to do this
     if (isUpcoming) {
-        startTime = exports.clean(JSON.stringify(new Date((scrapeString(response, `"scheduledStartTime":`, ",") * 1000))));
+        if (response.includes(`"offerId":"sponsors_only_video"`)) { // Stream is members-only and does not contain a scheduledStartTime
+            startTime = exports.clean(JSON.stringify(new Date(scrapeString(response, `"startTimestamp":`, ","))));
+        }
+        else {
+            startTime = exports.clean(JSON.stringify(new Date((scrapeString(response, `"scheduledStartTime":`, ",") * 1000))));
+        }
     }
     else {
         startTime = exports.clean(JSON.stringify(new Date(scrapeString(response, `"startTimestamp":`, ","))));
